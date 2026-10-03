@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="F2C.Tests/F2C.Tests.csproj" />
+  <Project Path="F2C/F2C.csproj" />
+</Solution>
