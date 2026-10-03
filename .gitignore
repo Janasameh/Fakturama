@@ -2,6 +2,7 @@ bin/
 obj/
 artifacts/*
 !artifacts/.gitkeep
+!artifacts/*.png
 .vs/
 *.log
 *.txt
