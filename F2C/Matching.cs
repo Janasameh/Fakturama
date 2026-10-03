@@ -1,13 +1,11 @@
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 namespace F2C;
 
-/// Pure exact-match logic for selector results (spec 2.3 and 3.3).
 public static class Matching
 {
     public static string Norm(string? s) =>
         string.Join(" ", (s ?? "").ToLowerInvariant().Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
 
-    /// "Item No." -> "item_no"
     public static string HeaderKey(string? h) => Regex.Replace((h ?? "").ToLowerInvariant(), @"\W+", "_").Trim('_');
 
     public static string Get(Dictionary<string, string> r, string k) => r.TryGetValue(k, out var v) ? v : "";
@@ -24,7 +22,6 @@ public static class Matching
         List<Dictionary<string, string>> rows, string sku) =>
         rows.Where(r => Norm(Get(r, "item_no")) == Norm(sku)).ToList();
 
-    /// 0 -> null (create), 1 -> the row, more -> stop for a human.
     public static T? PickOne<T>(List<T> matches, string what) where T : class
     {
         if (matches.Count > 1) throw new ManualReviewException($"{matches.Count} conflicting exact matches for {what}");

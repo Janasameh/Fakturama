@@ -1,9 +1,8 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using F2C;
 
-// Usage: dotnet run --project F2C -- path\to\order.png [--dry-run]
 [DllImport("user32.dll")] static extern bool SetProcessDPIAware();
-SetProcessDPIAware(); // so screenshot pixels == click pixels on scaled displays
+SetProcessDPIAware();
 
 if (args.Length == 0) { Console.WriteLine("Usage: F2C <order.json|image> [--dry-run] | F2C --dump"); return 1; }
 

@@ -1,10 +1,9 @@
-using System.Net;
+﻿using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 namespace F2C;
 
-/// Tiny shared helper for vision calls using Google Gemini API (free tier).
 public static class Llm
 {
     public static readonly string Model = Environment.GetEnvironmentVariable("F2C_MODEL") ?? "gemini-1.5-flash-latest";
@@ -19,7 +18,6 @@ public static class Llm
     public static bool HasKey =>
         !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("GEMINI_API_KEY"));
 
-    /// Send a request to Gemini with automatic retry on transient errors (429, 500, 502, 503).
     static string Send(string body)
     {
         var key = ApiKey;
@@ -70,7 +68,6 @@ public static class Llm
         return Send(body);
     }
 
-    /// Ask a text-only question (no image).
     public static string AskText(string prompt)
     {
         var body = JsonSerializer.Serialize(new

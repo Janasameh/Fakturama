@@ -1,8 +1,7 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text.Json;
 namespace F2C;
 
-/// Image -> Order. The LLM does perception; code does normalisation + validation.
 public static class Extraction
 {
     const string Prompt = """
@@ -71,7 +70,6 @@ Do not compute anything; transcribe.
         }
     }
 
-    /// Accepts an image (needs GEMINI_API_KEY) OR a .json file with the already-extracted fields.
     public static Order Extract(string path)
     {
         Order order;
@@ -85,7 +83,7 @@ Do not compute anything; transcribe.
                         path.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase) ? "image/jpeg" : "image/png";
             order = FromJson(Llm.ParseJson(Llm.AskVision(File.ReadAllBytes(path), media, Prompt)));
         }
-        Validation.Validate(order); // throws before any UI action
+        Validation.Validate(order);
         return order;
     }
 }

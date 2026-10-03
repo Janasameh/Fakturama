@@ -1,11 +1,11 @@
-using System.Globalization;
+﻿using System.Globalization;
 namespace F2C;
 
 public static class Money
 {
     public static decimal Q2(decimal x) => Math.Round(x, 2, MidpointRounding.AwayFromZero);
     public static string Fmt2(decimal x) => x.ToString("0.00", CultureInfo.InvariantCulture);
-    public static string Num(decimal x) => x.ToString("0.##", CultureInfo.InvariantCulture); // 19 -> "19", 7.5 -> "7.5"
+    public static string Num(decimal x) => x.ToString("0.##", CultureInfo.InvariantCulture);
 }
 
 public record Address(string Name, string Street, string Zip, string City, string Country);
@@ -14,7 +14,6 @@ public record Item(string Sku, string Description, decimal Qty, string Unit, dec
                    decimal DiscountPct, decimal VatPct, decimal SourceLineTotal)
 {
     public decimal LineNet() => Money.Q2(Qty * UnitNet * (1 - DiscountPct / 100m));
-    /// Master-data price: NO line discount (spec 3.9).
     public decimal ProductGrossPrice() => Money.Q2(UnitNet * (1 + VatPct / 100m));
 }
 

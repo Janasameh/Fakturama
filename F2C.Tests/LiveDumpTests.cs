@@ -1,4 +1,4 @@
-using F2C;
+﻿using F2C;
 using FlaUI.Core.Definitions;
 using Xunit;
 

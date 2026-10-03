@@ -1,11 +1,10 @@
-using System.Globalization;
+﻿using System.Globalization;
 using FlaUI.Core.AutomationElements;
 using FlaUI.Core.Definitions;
 using FlaUI.Core.Input;
 using FlaUI.Core.WindowsAPI;
 namespace F2C;
 
-/// The spec's business procedure. Every step = action + postcondition.
 public static class Flows
 {
     static readonly Dictionary<string, string> PayCode = new()
@@ -13,7 +12,6 @@ public static class Flows
         ["Bank Transfer"] = "Credit transfer", ["Credit Card"] = "Credit card", ["SEPA Direct Debit"] = "SEPA direct debit",
     };
 
-    // Fakturama (English UI) shows dates like "Oct 2, 2026" (seen in a real screenshot)
     public static string FmtDate(DateOnly d) => d.ToString("MMM d, yyyy", CultureInfo.InvariantCulture);
 
     static void Save(Ui ui) { ui.Find("toolbar_save").Click(); Thread.Sleep(800); }
@@ -31,7 +29,7 @@ public static class Flows
                     if (item != null) { item.Select(); return; }
                 }
             }
-            catch { /* fallback to keyboard */ }
+            catch {  }
         }
         combo.Click();
         Thread.Sleep(150);
@@ -42,7 +40,6 @@ public static class Flows
     static void WaitFor(Ui ui, string key, string what) =>
         Ui.WaitUntil(() => ui.TryFind(key, null, 2), 15, what);
 
-    // ------------------------------------------------------------ Order
     public static void OpenOrder(Ui ui, Order o)
     {
         var existing = ui.TryFind("order_custref", null, 1);
@@ -53,15 +50,14 @@ public static class Flows
             else ui.Find("toolbar_order").Click();
         }
         WaitFor(ui, "order_custref", "New Order editor");
-        // No. is left untouched (spec 1.4)
+
         Fill(ui, "order_date", FmtDate(o.OrderDate));
         Fill(ui, "order_custref", o.ExternalRef);
         var modeCombo = ui.TryFind("order_net_mode");
-        if (modeCombo != null) Choose(modeCombo, "Net"); // spec 1.7; VAT stays "With VAT"
+        if (modeCombo != null) Choose(modeCombo, "Net");
         ui.Screenshot("order_header");
     }
 
-    // ------------------------------------------------------------ Debtor
     static bool SelectDebtorFromOrder(Ui ui, Order o, bool allowCreate)
     {
         ui.Find("pick_contact").Click();
@@ -105,7 +101,7 @@ public static class Flows
         Fill(ui, "p_desc", o.PaymentMethod);
         Choose(ui.Find("p_code"), PayCode[o.PaymentMethod]);
         foreach (var k in new[] { "p_cash", "p_ddays", "p_ndays" }) Fill(ui, k, "0");
-        Save(ui); // once; never "Set as standard"
+        Save(ui);
     }
 
     static void CreateDebtor(Ui ui, Order o)
@@ -126,13 +122,13 @@ public static class Flows
         Fill(ui, "d_discount", "0");
         Choose(ui.Find("d_net_or_gross"), "Net");
         ui.Find("d_tab_payment").Click();
-        CreatePaymentMethodIfMissing(ui, o); // may navigate away; the Debtor tab stays open
-        // Switch back to the Debtor tab before selecting the payment method
+        CreatePaymentMethodIfMissing(ui, o);
+
         SwitchToDebtorTab(ui);
         Thread.Sleep(500);
         Choose(ui.Find("d_payment_combo"), o.PaymentMethod);
         ui.Screenshot("debtor_filled");
-        Save(ui); // once
+        Save(ui);
     }
 
     static void ResolveDebtor(Ui ui, Order o)
@@ -163,7 +159,6 @@ public static class Flows
         new Handle { El = tab }.Click();
     }
 
-    // ------------------------------------------------------------ Products
     static void EnsureVat(Ui ui, decimal pct)
     {
         var name = $"VAT {Money.Num(pct)}%";
@@ -176,7 +171,7 @@ public static class Flows
             var v = Matching.Get(rows[0], "value").Replace(",", ".").Replace("%", "").Trim();
             if (!decimal.TryParse(v, NumberStyles.Any, CultureInfo.InvariantCulture, out var val) || val != pct)
                 throw new ManualReviewException($"{name} exists with conflicting value '{Matching.Get(rows[0], "value")}'");
-            return; // TODO: VAT code S (Standard rate) is not verified on existing rows
+            return;
         }
         ui.Find("p_add").Click();
         Fill(ui, "v_name", name); Fill(ui, "v_desc", name); Fill(ui, "v_value", Money.Num(pct));
@@ -217,7 +212,7 @@ public static class Flows
         var rows = ui.StableRows(dlg);
         var hit = Matching.PickOne(Matching.ProductMatches(rows, it.Sku), $"SKU {it.Sku}");
         if (hit is null) { ui.Find("dlg_cancel", dlg).Click(); return false; }
-        Ui.Press(VirtualKeyShort.DOWN); // single filtered row -> first row
+        Ui.Press(VirtualKeyShort.DOWN);
         ui.Find("dlg_ok", dlg).Click();
         return true;
     }
@@ -243,8 +238,6 @@ public static class Flows
         SetCell(ui, "cell_discount", Money.Num(it.DiscountPct));
         ui.Screenshot($"line_{it.Sku}");
     }
-
-    // ------------------------------------------------------------ Save + Invoice
 
     static void VerifyDocumentsRow(Ui ui, string kind, Order o, decimal total)
     {
@@ -276,7 +269,7 @@ public static class Flows
         Save(ui);
         VerifyDocumentsRow(ui, "order", o, o.GrossTotal());
         SwitchToOrderTab(ui);
-        ui.Find("followup_invoice").Click(); // follow-up action, NOT the toolbar Invoice
+        ui.Find("followup_invoice").Click();
         WaitFor(ui, "inv_paid", "linked Invoice editor");
         ui.Screenshot("invoice_copied");
         Choose(ui.Find("inv_payment_method"), o.PaymentMethod);
@@ -288,11 +281,10 @@ public static class Flows
         }
         Save(ui);
         VerifyDocumentsRow(ui, "invoice", o, o.GrossTotal());
-        VerifyDocumentsRow(ui, "order", o, o.GrossTotal()); // source Order still there
+        VerifyDocumentsRow(ui, "order", o, o.GrossTotal());
         ui.Screenshot("final_verification");
     }
 
-    /// Design doc §7: before creating, search Documents for existing Cust.Ref.
     static void CheckDuplicate(Ui ui, Order o)
     {
         try

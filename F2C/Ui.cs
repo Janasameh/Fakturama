@@ -1,4 +1,4 @@
-using System.Drawing;
+﻿using System.Drawing;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using FlaUI.Core.AutomationElements;
@@ -8,7 +8,6 @@ using FlaUI.Core.WindowsAPI;
 using FlaUI.UIA3;
 namespace F2C;
 
-/// A located control: either a UIA element or a screen rectangle (from vision).
 public sealed class Handle
 {
     [System.Runtime.InteropServices.DllImport("user32.dll")]
@@ -57,7 +56,6 @@ public sealed class Handle
     }
 }
 
-/// Grounding layer. Tier 1: UIA (FlaUI)   Tier 2: vision (screenshot -> LLM -> bbox)   Tier 3: stop.
 public sealed class Ui : IDisposable
 {
     const string Artifacts = "artifacts";
@@ -101,8 +99,8 @@ public sealed class Ui : IDisposable
             var hwnd = Main.Properties.NativeWindowHandle.ValueOrDefault;
             if (hwnd != IntPtr.Zero)
             {
-                ShowWindow(hwnd, 9); // SW_RESTORE
-                ShowWindow(hwnd, 3); // SW_MAXIMIZE
+                ShowWindow(hwnd, 9);
+                ShowWindow(hwnd, 3);
                 SetForegroundWindow(hwnd);
                 Thread.Sleep(600);
             }
@@ -113,7 +111,6 @@ public sealed class Ui : IDisposable
     }
     public void Dispose() => _auto.Dispose();
 
-    // ---- keyboard helpers ------------------------------------------------
     public static void Chord(params VirtualKeyShort[] keys) => Keyboard.TypeSimultaneously(keys);
     public static void Press(VirtualKeyShort k) => Keyboard.Type(k);
     public static void Paste(string text)
@@ -124,19 +121,17 @@ public sealed class Ui : IDisposable
         Chord(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_V);
     }
 
-    // ---- waiting -----------------------------------------------------------
     public static T WaitUntil<T>(Func<T?> f, double seconds, string what) where T : class
     {
         var end = DateTime.UtcNow.AddSeconds(seconds);
         while (DateTime.UtcNow < end)
         {
-            try { var r = f(); if (r != null) return r; } catch { /* retry */ }
+            try { var r = f(); if (r != null) return r; } catch {  }
             Thread.Sleep(300);
         }
         throw new StepFailedException($"timeout waiting for {what}");
     }
 
-    // ---- evidence ----------------------------------------------------------
     public byte[] Screenshot(string? name = null)
     {
         Directory.CreateDirectory(Artifacts);
@@ -175,7 +170,6 @@ public sealed class Ui : IDisposable
     static string SafeName(AutomationElement e) { try { return e.Name ?? ""; } catch { return ""; } }
     static ControlType SafeControlType(AutomationElement e) { try { return e.ControlType; } catch { return ControlType.Unknown; } }
 
-    // ---- scopes ------------------------------------------------------------
     IEnumerable<AutomationElement> TopWindows() =>
         _auto.GetDesktop().FindAllChildren()
              .Concat(Main.FindAllChildren())
@@ -203,8 +197,6 @@ public sealed class Ui : IDisposable
         }
     }
 
-    // ---- finding -----------------------------------------------------------
-    /// Tier 1 only. Returns null if UIA can't see it (used while waiting for editors to open).
     public Handle? TryFind(string key, AutomationElement? scope = null, double timeout = 2)
     {
         var t = Labels.Map[key];
@@ -218,7 +210,6 @@ public sealed class Ui : IDisposable
                 var found = all.FirstOrDefault(e => (Regex.IsMatch(e.Name ?? "", t.Uia) || Regex.IsMatch(e.HelpText ?? "", t.Uia)) && !e.IsOffscreen);
                 if (found != null) return found;
 
-                // Fallback for toolbar_order (New Order button in top toolbar)
                 if (key == "toolbar_order")
                 {
                     var match = scope.FindAllDescendants(cf => cf.ByControlType(ControlType.Button))
@@ -230,7 +221,6 @@ public sealed class Ui : IDisposable
                     if (match != null) return match;
                 }
 
-                // Fallback for toolbar_save (Save button in top toolbar)
                 if (key == "toolbar_save")
                 {
                     var match = scope.FindAllDescendants(cf => cf.ByControlType(ControlType.Button))
@@ -242,7 +232,6 @@ public sealed class Ui : IDisposable
                     if (match != null) return match;
                 }
 
-                // Smart fallback for SWT forms where Text label is separate from unlabeled Edit/ComboBox
                 if (t.CType is ControlType.Edit or ControlType.ComboBox)
                 {
                     var textLabels = scope.FindAllDescendants(cf => cf.ByControlType(ControlType.Text));
@@ -258,7 +247,7 @@ public sealed class Ui : IDisposable
                         }
                     }
                 }
-                // Deterministic UIA detection for order_net_mode (Gross/Net price mode combo)
+
                 if (key == "order_net_mode")
                 {
                     var combos = scope.FindAllDescendants(cf => cf.ByControlType(ControlType.ComboBox))
@@ -267,7 +256,6 @@ public sealed class Ui : IDisposable
                     if (netCombo != null) return netCombo;
                 }
 
-                // Deterministic UIA detection for pick_contact / pick_contact_alt
                 if (key is "pick_contact" or "pick_contact_alt")
                 {
                     var allDesc = scope.FindAllDescendants().ToList();
@@ -288,7 +276,6 @@ public sealed class Ui : IDisposable
                     }
                 }
 
-                // Deterministic UIA detection for pick_product / pick_product_alt
                 if (key is "pick_product" or "pick_product_alt")
                 {
                     var allDesc = scope.FindAllDescendants().ToList();
@@ -336,14 +323,13 @@ public sealed class Ui : IDisposable
         var j = Llm.ParseJson(Llm.AskVision(png, "image/png", prompt));
         if (!j.TryGetProperty("found", out var f) || !f.GetBoolean())
         {
-            Screenshot($"FAILED_{key}"); // Tier 3: stop with evidence
+            Screenshot($"FAILED_{key}");
             throw new StepFailedException($"could not locate: {t.Hint}");
         }
         var bb = j.GetProperty("bbox").EnumerateArray().Select(x => (int)x.GetDouble()).ToArray();
         return new Handle { Desc = key, Rect = Rectangle.FromLTRB(bb[0], bb[1], bb[2], bb[3]) };
     }
 
-    // ---- discovery: list every visible control so Labels.cs can be fixed with real names ----
     public void Dump(string path)
     {
         var lines = new List<string>();
@@ -354,12 +340,11 @@ public sealed class Ui : IDisposable
                 if (e.IsOffscreen) continue;
                 lines.Add($"{e.ControlType,-12} | name='{e.Name}' | id='{e.AutomationId}' | class='{e.ClassName}'");
             }
-            catch { /* element vanished; skip */ }
+            catch {  }
         }
         File.WriteAllLines(path, lines);
     }
 
-    // ---- reading tables ----------------------------------------------------
     public List<Dictionary<string, string>> ReadRows(AutomationElement? scope = null)
     {
         scope ??= Main;
@@ -399,7 +384,7 @@ public sealed class Ui : IDisposable
             }
             return rows;
         }
-        catch { /* fall through to vision */ }
+        catch {  }
 
         if (!HasKey)
         {
@@ -415,7 +400,6 @@ public sealed class Ui : IDisposable
             .ToDictionary(p => Matching.HeaderKey(p.Name), p => p.Value.ToString())).ToList();
     }
 
-    /// Spec "wait for the list to stabilise": identical results on consecutive polls.
     public List<Dictionary<string, string>> StableRows(AutomationElement? scope = null)
     {
         string? last = null; int same = 0;

@@ -1,6 +1,5 @@
-namespace F2C;
+﻿namespace F2C;
 
-/// Deterministic checks on extracted data, run BEFORE touching the UI.
 public static class Validation
 {
     public static readonly HashSet<string> KnownPaymentMethods = ["Bank Transfer", "Credit Card", "SEPA Direct Debit"];

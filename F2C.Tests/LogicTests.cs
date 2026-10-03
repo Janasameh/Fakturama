@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using F2C;
 using Xunit;
 
@@ -31,8 +31,8 @@ public class LogicTests
     [Fact] public void ProductMasterPriceIgnoresLineDiscount()
     {
         var o = Make(Good);
-        Assert.Equal(297.50m, o.Items[0].ProductGrossPrice()); // 250 * 1.19
-        Assert.Equal(450.00m, o.Items[0].LineNet());           // discount only on the line
+        Assert.Equal(297.50m, o.Items[0].ProductGrossPrice());
+        Assert.Equal(450.00m, o.Items[0].LineNet());
     }
 
     [Fact] public void MisreadDigitIsCaught() =>
@@ -81,8 +81,6 @@ public class LogicTests
     [Fact] public void DateFormatMatchesFakturama() =>
         Assert.Equal("Oct 2, 2026", Flows.FmtDate(new DateOnly(2026, 10, 2)));
 
-    // ---- additional validation tests ----
-
     [Fact] public void MissingExternalRefRejected()
     {
         var json = Good.Replace("\"WEB-2026-0714-A17\"", "\"\"");
@@ -116,8 +114,6 @@ public class LogicTests
     [Fact] public void LineTotalMismatchCaught() =>
         Assert.Throws<ValidationException>(() => Validation.Validate(Make(Good.Replace("\"line_net\":450.00", "\"line_net\":451.00"))));
 
-    // ---- multi-VAT-rate test ----
-
     const string MultiVat = """
     {"external_reference":"REF-X","order_date":"2026-01-01","customer_id":"C1","currency":"EUR",
      "company":"Test GmbH","contact_first_name":"A","contact_last_name":"B",
@@ -136,12 +132,10 @@ public class LogicTests
         var o = Make(MultiVat);
         Validation.Validate(o);
         Assert.Equal(300.00m, o.NetTotal());
-        // 100 * 19% = 19.00  +  200 * 7% = 14.00  =  33.00
+
         Assert.Equal(33.00m, o.VatTotal());
         Assert.Equal(333.00m, o.GrossTotal());
     }
-
-    // ---- defensive JSON parsing tests ----
 
     [Fact] public void MissingItemsThrowsValidation() =>
         Assert.Throws<ValidationException>(() => Extraction.FromJson(
@@ -155,22 +149,18 @@ public class LogicTests
         Assert.Throws<ValidationException>(() => Extraction.FromJson(
             JsonDocument.Parse("""{"items":[],"totals":{"net":0,"vat":0,"gross":0}}""").RootElement));
 
-    // ---- same address detection ----
-
     [Fact] public void SameAddressDetected()
     {
-        var json = MultiVat; // billing == delivery in MultiVat
+        var json = MultiVat;
         var o = Make(json);
         Assert.True(o.SameAddress());
     }
 
-    // ---- unpaid order with no date is fine ----
-
     [Fact] public void UnpaidWithoutDateIsValid()
     {
-        var o = Make(MultiVat); // paid_status = UNPAID, payment_date = null
+        var o = Make(MultiVat);
         Assert.False(o.Paid);
         Assert.Null(o.PaymentDate);
-        Validation.Validate(o); // should not throw
+        Validation.Validate(o);
     }
 }
