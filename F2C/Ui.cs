@@ -224,8 +224,8 @@ public sealed class Ui : IDisposable
                     var match = scope.FindAllDescendants(cf => cf.ByControlType(ControlType.Button))
                         .Concat(scope.FindAllDescendants())
                         .FirstOrDefault(e => !e.IsOffscreen && (
-                            Regex.IsMatch(e.Name ?? "", @"(?i)Create:\s*New\s*Order") ||
-                            Regex.IsMatch(e.HelpText ?? "", @"(?i)Create:\s*New\s*Order")
+                            Regex.IsMatch(e.Name ?? "", @"(?i)(Create:?\s*)?(a\s*)?New\s*Order|^Order$") ||
+                            Regex.IsMatch(e.HelpText ?? "", @"(?i)(Create:?\s*)?(a\s*)?New\s*Order|^Order$")
                         ));
                     if (match != null) return match;
                 }

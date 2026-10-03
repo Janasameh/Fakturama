@@ -16,13 +16,13 @@ public static class Labels
     public static readonly Dictionary<string, Target> Map = new()
     {
         // toolbar / panels
-        ["toolbar_order"] = Tg(@"(?i)Create:\s*New\s*Order", "the 'Order' button in the top toolbar"),
-        ["toolbar_save"] = Tg(@"(?i)Save.*current|^Save$", "the 'Save' (disk) button in the top toolbar"),
-        ["nav_new_contact"] = Tg(@"New Contact", "'New Contact' link in the left 'New' panel"),
-        ["nav_new_product"] = Tg(@"New product", "'New product' link in the left 'New' panel"),
-        ["nav_documents"] = Tg(@"^Documents$", "'Documents' entry under 'Data' in the left panel"),
-        ["nav_vats"] = Tg(@"^VATs$", "'VATs' entry under 'Data' in the left panel"),
-        ["nav_payments"] = Tg(@"terms of payment", "'terms of payment' entry under 'Data' in the left panel"),
+        ["toolbar_order"] = Tg(@"(?i)(Create:?\s*)?(a\s*)?New\s*Order|^Order$", "the 'Order' button in the top toolbar"),
+        ["toolbar_save"] = Tg(@"(?i)Save", "the 'Save' (disk) button in the top toolbar"),
+        ["nav_new_contact"] = Tg(@"(?i)New\s*Contact", "'New Contact' link in the left 'New' panel"),
+        ["nav_new_product"] = Tg(@"(?i)New\s*product", "'New product' link in the left 'New' panel"),
+        ["nav_documents"] = Tg(@"(?i)Documents", "'Documents' entry under 'Data' in the left panel"),
+        ["nav_vats"] = Tg(@"(?i)VATs", "'VATs' entry under 'Data' in the left panel"),
+        ["nav_payments"] = Tg(@"(?i)terms of payment|payment", "'terms of payment' entry under 'Data' in the left panel"),
         // order header
         ["order_date"] = Tg(@"^Date$", "the Date input in the Order header", ControlType.Edit),
         ["order_custref"] = Tg(@"(?i)Cust.*Ref|Customer.*Ref|Reference", "the 'Cust.Ref.' input in the Order header", ControlType.Edit),
